@@ -61,6 +61,7 @@ func main() {
 	mux.Handle("/bench", handle(benchHandler, verbose))
 	mux.Handle("/api", handle(apiHandler, verbose))
 	mux.Handle("/health", handle(healthHandler, verbose))
+	mux.Handle("/remote", handle(RemoteCall, verbose))
 	mux.Handle("/", handle(whoamiHandler, verbose))
 
 	if cert == "" || key == "" {
@@ -315,4 +316,20 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+var ENDPOINT = getEnv("ENDPOINT", "https://httpbin.org/anything")
+
+func RemoteCall(w http.ResponseWriter, req *http.Request) {
+	res, err := http.Get(ENDPOINT)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+	if _, err := io.Copy(w, res.Body); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
